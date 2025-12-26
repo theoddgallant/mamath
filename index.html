@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .score {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .score span {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+
+        .difficulty {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .timer-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .timer-bar {
+            height: 30px;
+            background: linear-gradient(90deg, #51cf66, #ffd43b, #ff6b6b);
+            border-radius: 15px;
+            transition: width 0.1s linear;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .calculation {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .equation {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .proposed-result {
+            font-size: 2.5em;
+            color: #667eea;
+            font-weight: bold;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .question {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-lower {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-lower:hover:not(:disabled) {
+            background: #ee5a52;
+        }
+
+        .btn-higher {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-higher:hover:not(:disabled) {
+            background: #40c057;
+        }
+
+        .feedback {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .feedback.incorrect {
+            background: #ffe3e3;
+            color: #c92a2a;
+        }
+
+        .game-over {
+            display: none;
+            text-align: center;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .game-over h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .final-score {
+            font-size: 3em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .score-label {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .btn-restart {
+            background: #667eea;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-restart:hover {
+            background: #5568d3;
+        }
+
+        .correct-answer {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .welcome-screen {
+            text-align: center;
+        }
+
+        .welcome-screen.show {
+            display: block;
+        }
+
+        .welcome-screen h2 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen .subtitle {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .instructions li {
+            padding: 10px 0;
+            font-size: 1.1em;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .instructions li::before {
+            content: "✓ ";
+            color: #51cf66;
+            font-weight: bold;
+            font-size: 1.3em;
+            margin-right: 10px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 60px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+            font-weight: bold;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="welcome-screen show" id="welcomeScreen">
+            <h2>🧮 Math Challenge</h2>
+            <div class="subtitle">Testez votre rapidité en calcul mental !</div>
+            
+            <div class="instructions">
+                <h3>📖 Comment jouer ?</h3>
+                <ul>
+                    <li>Un calcul et un résultat s'affichent à l'écran</li>
+                    <li>Le résultat proposé est toujours FAUX</li>
+                    <li>Vous devez deviner si le VRAI résultat est plus grand ou plus petit</li>
+                    <li>Vous avez seulement 10 secondes pour répondre ⏱️</li>
+                    <li>La difficulté augmente progressivement 📈</li>
+                    <li>Une seule erreur et c'est perdu ! 💥</li>
+                </ul>
+            </div>
+            
+            <button class="btn-start" id="btnStart">🚀 Commencer à jouer</button>
+        </div>
+
+        <div class="header hidden" id="gameHeader">
+            <h1>🧮 Math Challenge</h1>
+            <div class="score">Score: <span id="score">0</span></div>
+        </div>
+
+        <div id="gameActive" class="hidden">
+            <div class="difficulty" id="difficulty">Niveau 1</div>
+            
+            <div class="timer-container">
+                <div class="timer-bar" id="timerBar"></div>
+                <div class="timer-text" id="timerText">10</div>
+            </div>
+            
+            <div class="calculation">
+                <div class="equation" id="equation">5 + 3</div>
+                <div class="proposed-result" id="proposedResult">8</div>
+                <div class="question">Le vrai résultat est-il...</div>
+            </div>
+
+            <div class="feedback" id="feedback">
+                <div id="feedbackText">Correct! 🎉</div>
+                <div class="correct-answer" id="correctAnswer"></div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn-lower" id="btnLower">👇 Plus petit</button>
+                <button class="btn-higher" id="btnHigher">👆 Plus grand</button>
+            </div>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h2>Perdu!</h2>
+            <div class="final-score" id="finalScore">0</div>
+            <div class="score-label">Votre score final</div>
+            <div id="checkpointMessage" class="hidden" style="color: #51cf66; font-weight: bold; margin: 20px 0; font-size: 1.1em;">
+                🎯 Checkpoint débloqué ! Vous pouvez recommencer au niveau 30
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 15px; max-width: 300px; margin: 0 auto;">
+                <button class="btn-restart" id="btnRestart">🔄 Recommencer au début</button>
+                <button class="btn-restart" id="btnRestartCheckpoint" style="background: #51cf66; display: none;">🎯 Recommencer au niveau 30</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let currentCalculation = {};
+        let level = 1;
+        let timeLeft = 10;
+        let timerInterval = null;
+        let isWaitingForNext = false;
+        let checkpointReached = false; // Indique si le checkpoint niveau 30 a été atteint
+
+        const TIMER_DURATION = 10;
+        const CHECKPOINT_SCORE = 30; // Score 30 = niveau 11 (30/3 + 1)
+
+        // Créer les sons du jeu avec Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let backgroundMusic = null;
+        let isMusicPlaying = false;
+
+        // Fonction pour jouer un son de victoire
+        function playSuccessSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+            oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+            oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.4);
+        }
+
+        // Fonction pour jouer un son d'échec
+        function playFailSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(329.63, audioContext.currentTime); // E4
+            oscillator.frequency.setValueAtTime(293.66, audioContext.currentTime + 0.15); // D4
+            oscillator.frequency.setValueAtTime(246.94, audioContext.currentTime + 0.3); // B3
+            
+            oscillator.type = 'triangle';
+            gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // Fonction pour jouer un son de tic-tac
+        function playTickSound() {
+            if (timeLeft <= 3 && timeLeft > 0) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+        }
+
+        // Fonction pour créer et jouer la musique d'ambiance
+        function startBackgroundMusic() {
+            if (isMusicPlaying) return;
+            
+            const notes = [
+                { freq: 261.63, time: 0 },    // C4
+                { freq: 329.63, time: 0.5 },  // E4
+                { freq: 392.00, time: 1.0 },  // G4
+                { freq: 523.25, time: 1.5 },  // C5
+                { freq: 392.00, time: 2.0 },  // G4
+                { freq: 329.63, time: 2.5 },  // E4
+            ];
+            
+            function playMusicLoop() {
+                if (!isMusicPlaying) return;
+                
+                notes.forEach(note => {
+                    setTimeout(() => {
+                        if (!isMusicPlaying) return;
+                        
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.4);
+                    }, note.time * 1000);
+                });
+                
+                setTimeout(playMusicLoop, 3000);
+            }
+            
+            isMusicPlaying = true;
+            playMusicLoop();
+        }
+
+        function stopBackgroundMusic() {
+            isMusicPlaying = false;
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function startTimer() {
+            timeLeft = TIMER_DURATION;
+            updateTimerDisplay();
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            let lastSecond = Math.ceil(timeLeft);
+            
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                
+                const currentSecond = Math.ceil(timeLeft);
+                if (currentSecond !== lastSecond && currentSecond <= 3 && currentSecond > 0) {
+                    playTickSound();
+                    lastSecond = currentSecond;
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeLeft = 0;
+                    updateTimerDisplay();
+                    handleTimeout();
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 100);
+        }
+
+        function updateTimerDisplay() {
+            const timerBar = document.getElementById('timerBar');
+            const timerText = document.getElementById('timerText');
+            
+            const percentage = (timeLeft / TIMER_DURATION) * 100;
+            timerBar.style.width = percentage + '%';
+            timerText.textContent = Math.ceil(timeLeft);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function handleTimeout() {
+            if (isWaitingForNext) return;
+            
+            isWaitingForNext = true;
+            playFailSound();
+            
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedbackText');
+            const correctAnswer = document.getElementById('correctAnswer');
+            
+            disableButtons();
+            
+            feedback.className = 'feedback incorrect show';
+            feedbackText.textContent = '❌ Perdu! Temps écoulé!';
+            correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
+            
+            setTimeout(() => {
+                gameOver();
+            }, 2000);
+        }
+
+        function getDifficultyParams(level) {
+            if (level <= 3) {
+                return { min: 1, max: 20, ops: ['+', '-'], useDecimals: false, useSqrt: false };
+            } else if (level <= 6) {
+                return { min: 10, max: 50, ops: ['+', '-', '×'], useDecimals: false, useSqrt: false };
+            } else if (level <= 10) {
+                return { min: 20, max: 100, ops: ['+', '-', '×', '÷'], useDecimals: true, useSqrt: false };
+            } else if (level <= 15) {
+                return { min: 50, max: 200, ops: ['+', '-', '×', '÷'], useDecimals: true, useSqrt: true };
+            } else {
+                return { min: 100, max: 500, ops: ['+', '-', '×', '÷'], useDecimals: true, useSqrt: true };
+            }
+        }
+
+        function generateCalculation() {
+            const params = getDifficultyParams(level);
+            const ops = params.ops;
+            const operation = ops[Math.floor(Math.random() * ops.length)];
+            
+            let num1, num2, realResult, equation;
+
+            if (params.useSqrt && Math.random() > 0.7) {
+                num1 = getRandomInt(params.min, params.max);
+                realResult = Math.sqrt(num1);
+                equation = `√${num1}`;
+            } else {
+                num1 = getRandomInt(params.min, params.max);
+                num2 = getRandomInt(params.min, params.max);
+
+                switch(operation) {
+                    case '+':
+                        realResult = num1 + num2;
+                        equation = `${num1} + ${num2}`;
+                        break;
+                    case '-':
+                        realResult = num1 - num2;
+                        equation = `${num1} - ${num2}`;
+                        break;
+                    case '×':
+                        realResult = num1 * num2;
+                        equation = `${num1} × ${num2}`;
+                        break;
+                    case '÷':
+                        num2 = getRandomInt(2, 10);
+                        num1 = num2 * getRandomInt(Math.max(1, params.min/10), params.max/10);
+                        realResult = num1 / num2;
+                        equation = `${num1} ÷ ${num2}`;
+                        break;
+                }
+            }
+
+            if (!params.useDecimals) {
+                realResult = Math.round(realResult);
+            } else {
+                realResult = Math.round(realResult * 100) / 100;
+            }
+
+            // Générer un résultat proposé toujours faux
+            let proposedResult;
+            const randomChoice = Math.random();
+            
+            if (randomChoice < 0.5) {
+                const offset = getRandomInt(1, Math.max(2, Math.floor(Math.abs(realResult) * 0.3)));
+                proposedResult = realResult + offset;
+            } else {
+                const offset = getRandomInt(1, Math.max(2, Math.floor(Math.abs(realResult) * 0.3)));
+                proposedResult = realResult - offset;
+            }
+
+            if (!params.useDecimals) {
+                proposedResult = Math.round(proposedResult);
+            } else {
+                proposedResult = Math.round(proposedResult * 100) / 100;
+            }
+
+            return {
+                equation,
+                realResult,
+                proposedResult
+            };
+        }
+
+        function displayNewCalculation() {
+            isWaitingForNext = false;
+            currentCalculation = generateCalculation();
+            
+            document.getElementById('equation').textContent = currentCalculation.equation;
+            document.getElementById('proposedResult').textContent = currentCalculation.proposedResult;
+            document.getElementById('difficulty').textContent = `Niveau ${level}`;
+            
+            const feedback = document.getElementById('feedback');
+            feedback.className = 'feedback';
+            
+            enableButtons();
+            startTimer();
+        }
+
+        function enableButtons() {
+            document.getElementById('btnLower').disabled = false;
+            document.getElementById('btnHigher').disabled = false;
+        }
+
+        function disableButtons() {
+            document.getElementById('btnLower').disabled = true;
+            document.getElementById('btnHigher').disabled = true;
+        }
+
+        function checkAnswer(answer) {
+            if (isWaitingForNext) return;
+            
+            isWaitingForNext = true;
+            stopTimer();
+            
+            const real = currentCalculation.realResult;
+            const proposed = currentCalculation.proposedResult;
+            
+            let isCorrect = false;
+            
+            if (answer === 'higher' && real > proposed) {
+                isCorrect = true;
+            } else if (answer === 'lower' && real < proposed) {
+                isCorrect = true;
+            }
+
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedbackText');
+            const correctAnswer = document.getElementById('correctAnswer');
+            
+            disableButtons();
+
+            if (isCorrect) {
+                score++;
+                level = Math.floor(score / 3) + 1;
+                document.getElementById('score').textContent = score;
+                
+                // Vérifier si le checkpoint est atteint
+                if (score >= CHECKPOINT_SCORE && !checkpointReached) {
+                    checkpointReached = true;
+                    localStorage.setItem('mathChallengeCheckpoint', 'true');
+                }
+                
+                playSuccessSound();
+                
+                feedback.className = 'feedback correct show';
+                feedbackText.textContent = '✅ Correct!';
+                correctAnswer.textContent = `Résultat exact: ${real}`;
+                
+                setTimeout(() => {
+                    displayNewCalculation();
+                }, 1500);
+            } else {
+                playFailSound();
+                
+                feedback.className = 'feedback incorrect show';
+                feedbackText.textContent = '❌ Perdu!';
+                correctAnswer.textContent = `Le résultat exact était: ${real}`;
+                
+                setTimeout(() => {
+                    gameOver();
+                }, 2000);
+            }
+        }
+
+        function gameOver() {
+            stopTimer();
+            stopBackgroundMusic();
+            document.getElementById('gameActive').classList.add('hidden');
+            document.getElementById('gameOver').classList.add('show');
+            document.getElementById('finalScore').textContent = score;
+            
+            // Afficher le bouton checkpoint si disponible
+            const hasCheckpoint = localStorage.getItem('mathChallengeCheckpoint') === 'true';
+            const btnCheckpoint = document.getElementById('btnRestartCheckpoint');
+            const checkpointMessage = document.getElementById('checkpointMessage');
+            
+            if (hasCheckpoint) {
+                btnCheckpoint.style.display = 'block';
+                if (checkpointReached) {
+                    checkpointMessage.classList.remove('hidden');
+                }
+            }
+        }
+
+        function restartGame() {
+            score = 0;
+            level = 1;
+            isWaitingForNext = false;
+            checkpointReached = false;
+            document.getElementById('score').textContent = score;
+            document.getElementById('gameActive').classList.remove('hidden');
+            document.getElementById('gameOver').classList.remove('show');
+            document.getElementById('checkpointMessage').classList.add('hidden');
+            startBackgroundMusic();
+            displayNewCalculation();
+        }
+
+        function restartFromCheckpoint() {
+            score = CHECKPOINT_SCORE;
+            level = Math.floor(CHECKPOINT_SCORE / 3) + 1;
+            isWaitingForNext = false;
+            checkpointReached = true;
+            document.getElementById('score').textContent = score;
+            document.getElementById('gameActive').classList.remove('hidden');
+            document.getElementById('gameOver').classList.remove('show');
+            document.getElementById('checkpointMessage').classList.add('hidden');
+            startBackgroundMusic();
+            displayNewCalculation();
+        }
+
+        function startGame() {
+            document.getElementById('welcomeScreen').classList.remove('show');
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('gameHeader').classList.remove('hidden');
+            document.getElementById('gameActive').classList.remove('hidden');
+            startBackgroundMusic();
+            displayNewCalculation();
+        }
+
+        // Event listeners
+        document.getElementById('btnStart').addEventListener('click', startGame);
+        document.getElementById('btnLower').addEventListener('click', () => checkAnswer('lower'));
+        document.getElementById('btnHigher').addEventListener('click', () => checkAnswer('higher'));
+        document.getElementById('btnRestart').addEventListener('click', restartGame);
+        document.getElementById('btnRestartCheckpoint').addEventListener('click', restartFromCheckpoint);
+    </script>
+</body>
+</html>
