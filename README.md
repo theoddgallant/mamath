@@ -1,0 +1,2 @@
+# mamath
+ mental arithmetic game
