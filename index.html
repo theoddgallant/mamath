@@ -332,7 +332,9 @@
                     <li>Vous devez deviner si le VRAI résultat est plus grand ou plus petit</li>
                     <li>Vous avez seulement 10 secondes pour répondre ⏱️</li>
                     <li>La difficulté augmente progressivement 📈</li>
-                    <li>Une seule erreur et c'est perdu ! 💥</li>
+                    <li>Une erreur et c'est perdu... SAUF si vous avez une vie bonus ! 💥</li>
+                    <li><strong>🎁 Bonus :</strong> Tous les 20 niveaux, vous gagnez une vie supplémentaire</li>
+                    <li><strong>🎯 Checkpoints :</strong> Vous pouvez recommencer depuis les niveaux 20, 40, 60...</li>
                 </ul>
             </div>
             
@@ -341,7 +343,10 @@
 
         <div class="header hidden" id="gameHeader">
             <h1>🧮 Math Challenge</h1>
-            <div class="score">Score: <span id="score">0</span></div>
+            <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px;">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="score" id="livesDisplay">Vies: <span id="lives" style="color: #ff6b6b;">❤️</span></div>
+            </div>
         </div>
 
         <div id="gameActive" class="hidden">
@@ -373,12 +378,8 @@
             <h2>Perdu!</h2>
             <div class="final-score" id="finalScore">0</div>
             <div class="score-label">Votre score final</div>
-            <div id="checkpointMessage" class="hidden" style="color: #51cf66; font-weight: bold; margin: 20px 0; font-size: 1.1em;">
-                🎯 Checkpoint débloqué ! Vous pouvez recommencer au niveau 30
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 15px; max-width: 300px; margin: 0 auto;">
+            <div id="checkpointButtons" style="display: flex; flex-direction: column; gap: 15px; max-width: 300px; margin: 20px auto;">
                 <button class="btn-restart" id="btnRestart">🔄 Recommencer au début</button>
-                <button class="btn-restart" id="btnRestartCheckpoint" style="background: #51cf66; display: none;">🎯 Recommencer au niveau 30</button>
             </div>
         </div>
     </div>
@@ -390,10 +391,11 @@
         let timeLeft = 10;
         let timerInterval = null;
         let isWaitingForNext = false;
-        let checkpointReached = false; // Indique si le checkpoint niveau 30 a été atteint
+        let lives = 0; // Nombre de vies bonus
+        let checkpoints = []; // Liste des checkpoints débloqués (20, 40, 60...)
 
         const TIMER_DURATION = 10;
-        const CHECKPOINT_SCORE = 30; // Score 30 = niveau 11 (30/3 + 1)
+        const CHECKPOINT_INTERVAL = 20; // Checkpoint tous les 20 scores
 
         // Créer les sons du jeu avec Web Audio API
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -509,6 +511,48 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
+        function updateLivesDisplay() {
+            const livesElement = document.getElementById('lives');
+            if (lives > 0) {
+                livesElement.textContent = '❤️'.repeat(lives);
+            } else {
+                livesElement.textContent = '0';
+            }
+        }
+
+        function checkForCheckpoint() {
+            // Vérifier si on atteint un multiple de 20
+            if (score > 0 && score % CHECKPOINT_INTERVAL === 0) {
+                if (!checkpoints.includes(score)) {
+                    checkpoints.push(score);
+                    lives++; // Gagner une vie
+                    updateLivesDisplay();
+                    
+                    // Sauvegarder dans localStorage
+                    localStorage.setItem('mathChallengeCheckpoints', JSON.stringify(checkpoints));
+                    
+                    // Message visuel
+                    showBonusMessage(`🎉 Checkpoint ${score} ! +1 vie bonus !`);
+                }
+            }
+        }
+
+        function showBonusMessage(message) {
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedbackText');
+            
+            feedback.className = 'feedback show';
+            feedback.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            feedback.style.color = 'white';
+            feedbackText.textContent = message;
+            
+            setTimeout(() => {
+                feedback.className = 'feedback';
+                feedback.style.background = '';
+                feedback.style.color = '';
+            }, 2000);
+        }
+
         function startTimer() {
             timeLeft = TIMER_DURATION;
             updateTimerDisplay();
@@ -559,7 +603,6 @@
             if (isWaitingForNext) return;
             
             isWaitingForNext = true;
-            playFailSound();
             
             const feedback = document.getElementById('feedback');
             const feedbackText = document.getElementById('feedbackText');
@@ -567,13 +610,35 @@
             
             disableButtons();
             
-            feedback.className = 'feedback incorrect show';
-            feedbackText.textContent = '❌ Perdu! Temps écoulé!';
-            correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
-            
-            setTimeout(() => {
-                gameOver();
-            }, 2000);
+            // Vérifier si on a des vies
+            if (lives > 0) {
+                lives--;
+                updateLivesDisplay();
+                
+                playFailSound();
+                
+                feedback.className = 'feedback show';
+                feedback.style.background = '#fff3cd';
+                feedback.style.color = '#856404';
+                feedbackText.textContent = '⚠️ Temps écoulé ! Vous avez utilisé une vie';
+                correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
+                
+                setTimeout(() => {
+                    feedback.style.background = '';
+                    feedback.style.color = '';
+                    displayNewCalculation();
+                }, 2000);
+            } else {
+                playFailSound();
+                
+                feedback.className = 'feedback incorrect show';
+                feedbackText.textContent = '❌ Perdu! Temps écoulé!';
+                correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
+                
+                setTimeout(() => {
+                    gameOver();
+                }, 2000);
+            }
         }
 
         function getDifficultyParams(level) {
@@ -711,12 +776,6 @@
                 level = Math.floor(score / 3) + 1;
                 document.getElementById('score').textContent = score;
                 
-                // Vérifier si le checkpoint est atteint
-                if (score >= CHECKPOINT_SCORE && !checkpointReached) {
-                    checkpointReached = true;
-                    localStorage.setItem('mathChallengeCheckpoint', 'true');
-                }
-                
                 playSuccessSound();
                 
                 feedback.className = 'feedback correct show';
@@ -724,18 +783,39 @@
                 correctAnswer.textContent = `Résultat exact: ${real}`;
                 
                 setTimeout(() => {
+                    checkForCheckpoint(); // Vérifier si on atteint un checkpoint
                     displayNewCalculation();
                 }, 1500);
             } else {
-                playFailSound();
-                
-                feedback.className = 'feedback incorrect show';
-                feedbackText.textContent = '❌ Perdu!';
-                correctAnswer.textContent = `Le résultat exact était: ${real}`;
-                
-                setTimeout(() => {
-                    gameOver();
-                }, 2000);
+                // Vérifier si on a des vies
+                if (lives > 0) {
+                    lives--;
+                    updateLivesDisplay();
+                    
+                    playFailSound();
+                    
+                    feedback.className = 'feedback show';
+                    feedback.style.background = '#fff3cd';
+                    feedback.style.color = '#856404';
+                    feedbackText.textContent = '⚠️ Erreur ! Vous avez utilisé une vie';
+                    correctAnswer.textContent = `Le résultat exact était: ${real}`;
+                    
+                    setTimeout(() => {
+                        feedback.style.background = '';
+                        feedback.style.color = '';
+                        displayNewCalculation();
+                    }, 2000);
+                } else {
+                    playFailSound();
+                    
+                    feedback.className = 'feedback incorrect show';
+                    feedbackText.textContent = '❌ Perdu!';
+                    correctAnswer.textContent = `Le résultat exact était: ${real}`;
+                    
+                    setTimeout(() => {
+                        gameOver();
+                    }, 2000);
+                }
             }
         }
 
@@ -746,50 +826,65 @@
             document.getElementById('gameOver').classList.add('show');
             document.getElementById('finalScore').textContent = score;
             
-            // Afficher le bouton checkpoint si disponible
-            const hasCheckpoint = localStorage.getItem('mathChallengeCheckpoint') === 'true';
-            const btnCheckpoint = document.getElementById('btnRestartCheckpoint');
-            const checkpointMessage = document.getElementById('checkpointMessage');
+            // Charger les checkpoints sauvegardés
+            const savedCheckpoints = JSON.parse(localStorage.getItem('mathChallengeCheckpoints') || '[]');
+            const checkpointButtons = document.getElementById('checkpointButtons');
             
-            if (hasCheckpoint) {
-                btnCheckpoint.style.display = 'block';
-                if (checkpointReached) {
-                    checkpointMessage.classList.remove('hidden');
-                }
-            }
+            // Supprimer les anciens boutons checkpoint
+            const oldCheckpointBtns = checkpointButtons.querySelectorAll('.checkpoint-btn');
+            oldCheckpointBtns.forEach(btn => btn.remove());
+            
+            // Ajouter un bouton pour chaque checkpoint débloqué
+            savedCheckpoints.sort((a, b) => b - a); // Trier par ordre décroissant
+            savedCheckpoints.forEach(checkpoint => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-restart checkpoint-btn';
+                btn.style.background = '#51cf66';
+                btn.textContent = `🎯 Recommencer au niveau ${checkpoint}`;
+                btn.onclick = () => restartFromCheckpoint(checkpoint);
+                checkpointButtons.appendChild(btn);
+            });
         }
 
         function restartGame() {
             score = 0;
             level = 1;
+            lives = 0;
             isWaitingForNext = false;
-            checkpointReached = false;
             document.getElementById('score').textContent = score;
+            updateLivesDisplay();
             document.getElementById('gameActive').classList.remove('hidden');
             document.getElementById('gameOver').classList.remove('show');
-            document.getElementById('checkpointMessage').classList.add('hidden');
             startBackgroundMusic();
             displayNewCalculation();
         }
 
-        function restartFromCheckpoint() {
-            score = CHECKPOINT_SCORE;
-            level = Math.floor(CHECKPOINT_SCORE / 3) + 1;
+        function restartFromCheckpoint(checkpointScore) {
+            score = checkpointScore;
+            level = Math.floor(checkpointScore / 3) + 1;
+            
+            // Calculer le nombre de vies en fonction des checkpoints atteints
+            lives = Math.floor(checkpointScore / CHECKPOINT_INTERVAL);
+            
             isWaitingForNext = false;
-            checkpointReached = true;
             document.getElementById('score').textContent = score;
+            updateLivesDisplay();
             document.getElementById('gameActive').classList.remove('hidden');
             document.getElementById('gameOver').classList.remove('show');
-            document.getElementById('checkpointMessage').classList.add('hidden');
             startBackgroundMusic();
             displayNewCalculation();
         }
 
         function startGame() {
+            // Charger les checkpoints sauvegardés
+            const savedCheckpoints = JSON.parse(localStorage.getItem('mathChallengeCheckpoints') || '[]');
+            checkpoints = savedCheckpoints;
+            
             document.getElementById('welcomeScreen').classList.remove('show');
             document.getElementById('welcomeScreen').classList.add('hidden');
             document.getElementById('gameHeader').classList.remove('hidden');
             document.getElementById('gameActive').classList.remove('hidden');
+            updateLivesDisplay();
             startBackgroundMusic();
             displayNewCalculation();
         }
@@ -799,7 +894,6 @@
         document.getElementById('btnLower').addEventListener('click', () => checkAnswer('lower'));
         document.getElementById('btnHigher').addEventListener('click', () => checkAnswer('higher'));
         document.getElementById('btnRestart').addEventListener('click', restartGame);
-        document.getElementById('btnRestartCheckpoint').addEventListener('click', restartFromCheckpoint);
     </script>
 </body>
 </html>
