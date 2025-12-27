@@ -69,7 +69,7 @@
 
         .timer-bar {
             height: 30px;
-            background: linear-gradient(90deg, #51cf66, #ffd43b, #ff6b6b);
+            background: linear-gradient(90deg, #ff6b6b, #ffd43b, #51cf66);
             border-radius: 15px;
             transition: width 0.1s linear;
             width: 100%;
@@ -331,7 +331,7 @@
                     <li>Le résultat proposé est toujours FAUX</li>
                     <li>Vous devez deviner si le VRAI résultat est plus grand ou plus petit</li>
                     <li>Vous avez seulement 10 secondes pour répondre ⏱️</li>
-                    <li>La difficulté augmente progressivement 📈</li>
+                    <li>La difficulté augmente : nombres plus grands, opérations multiples 📈</li>
                     <li>Une erreur et c'est perdu... SAUF si vous avez une vie bonus ! 💥</li>
                     <li><strong>🎁 Bonus :</strong> Tous les 20 niveaux, vous gagnez une vie supplémentaire</li>
                     <li><strong>🎯 Checkpoints :</strong> Vous pouvez recommencer depuis les niveaux 20, 40, 60...</li>
@@ -658,15 +658,64 @@
         function generateCalculation() {
             const params = getDifficultyParams(level);
             const ops = params.ops;
-            const operation = ops[Math.floor(Math.random() * ops.length)];
             
-            let num1, num2, realResult, equation;
+            let num1, num2, num3, realResult, equation;
 
+            // À partir du niveau 7, possibilité d'avoir 3 nombres
+            const useThreeNumbers = level >= 7 && Math.random() > 0.5;
+            
             if (params.useSqrt && Math.random() > 0.7) {
                 num1 = getRandomInt(params.min, params.max);
                 realResult = Math.sqrt(num1);
                 equation = `√${num1}`;
+            } else if (useThreeNumbers && ops.length > 1) {
+                // Calcul avec 3 nombres
+                num1 = getRandomInt(params.min, params.max);
+                num2 = getRandomInt(params.min, params.max);
+                num3 = getRandomInt(params.min, params.max);
+                
+                const operation1 = ops[Math.floor(Math.random() * ops.length)];
+                const operation2 = ops[Math.floor(Math.random() * ops.length)];
+                
+                // Calculer le résultat étape par étape
+                let intermediate;
+                switch(operation1) {
+                    case '+':
+                        intermediate = num1 + num2;
+                        break;
+                    case '-':
+                        intermediate = num1 - num2;
+                        break;
+                    case '×':
+                        intermediate = num1 * num2;
+                        break;
+                    case '÷':
+                        num2 = getRandomInt(2, 10);
+                        num1 = num2 * getRandomInt(Math.max(1, params.min/10), params.max/10);
+                        intermediate = num1 / num2;
+                        break;
+                }
+                
+                switch(operation2) {
+                    case '+':
+                        realResult = intermediate + num3;
+                        break;
+                    case '-':
+                        realResult = intermediate - num3;
+                        break;
+                    case '×':
+                        realResult = intermediate * num3;
+                        break;
+                    case '÷':
+                        num3 = getRandomInt(2, 10);
+                        realResult = intermediate / num3;
+                        break;
+                }
+                
+                equation = `${num1} ${operation1} ${num2} ${operation2} ${num3}`;
             } else {
+                // Calcul avec 2 nombres (comme avant)
+                const operation = ops[Math.floor(Math.random() * ops.length)];
                 num1 = getRandomInt(params.min, params.max);
                 num2 = getRandomInt(params.min, params.max);
 
