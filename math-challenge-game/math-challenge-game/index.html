@@ -69,7 +69,7 @@
 
         .timer-bar {
             height: 30px;
-            background: linear-gradient(90deg, #51cf66, #ffd43b, #ff6b6b);
+            background: linear-gradient(90deg, #ff6b6b, #ffd43b, #51cf66);
             border-radius: 15px;
             transition: width 0.1s linear;
             width: 100%;
@@ -239,16 +239,117 @@
         .hidden {
             display: none;
         }
+
+        .welcome-screen {
+            text-align: center;
+        }
+
+        .welcome-screen.show {
+            display: block;
+        }
+
+        .welcome-screen h2 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen .subtitle {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .instructions li {
+            padding: 10px 0;
+            font-size: 1.1em;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .instructions li::before {
+            content: "✓ ";
+            color: #51cf66;
+            font-weight: bold;
+            font-size: 1.3em;
+            margin-right: 10px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 60px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+            font-weight: bold;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <div class="header">
-            <h1>🧮 Math Challenge</h1>
-            <div class="score">Score: <span id="score">0</span></div>
+        <div class="welcome-screen show" id="welcomeScreen">
+            <h2>🧮 Math Challenge</h2>
+            <div class="subtitle">Testez votre rapidité en calcul mental !</div>
+            
+            <div class="instructions">
+                <h3>📖 Comment jouer ?</h3>
+                <ul>
+                    <li>Un calcul et un résultat s'affichent à l'écran</li>
+                    <li>Le résultat proposé est toujours FAUX</li>
+                    <li>Vous devez deviner si le VRAI résultat est plus grand ou plus petit</li>
+                    <li>Vous avez seulement 10 secondes pour répondre ⏱️</li>
+                    <li>La difficulté augmente : nombres plus grands, opérations multiples 📈</li>
+                    <li>Une erreur et c'est perdu... SAUF si vous avez une vie bonus ! 💥</li>
+                    <li><strong>🎁 Bonus :</strong> Tous les 20 niveaux, vous gagnez une vie supplémentaire</li>
+                    <li><strong>🎯 Checkpoints :</strong> Vous pouvez recommencer depuis les niveaux 20, 40, 60...</li>
+                </ul>
+            </div>
+            
+            <button class="btn-start" id="btnStart">🚀 Commencer à jouer</button>
         </div>
 
-        <div id="gameActive">
+        <div class="header hidden" id="gameHeader">
+            <h1>🧮 Math Challenge</h1>
+            <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px;">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="score" id="livesDisplay">Vies: <span id="lives" style="color: #ff6b6b;">❤️</span></div>
+            </div>
+        </div>
+
+        <div id="gameActive" class="hidden">
             <div class="difficulty" id="difficulty">Niveau 1</div>
             
             <div class="timer-container">
@@ -277,7 +378,9 @@
             <h2>Perdu!</h2>
             <div class="final-score" id="finalScore">0</div>
             <div class="score-label">Votre score final</div>
-            <button class="btn-restart" id="btnRestart">🔄 Recommencer</button>
+            <div id="checkpointButtons" style="display: flex; flex-direction: column; gap: 15px; max-width: 300px; margin: 20px auto;">
+                <button class="btn-restart" id="btnRestart">🔄 Recommencer au début</button>
+            </div>
         </div>
     </div>
 
@@ -288,8 +391,11 @@
         let timeLeft = 10;
         let timerInterval = null;
         let isWaitingForNext = false;
+        let lives = 0; // Nombre de vies bonus
+        let checkpoints = []; // Liste des checkpoints débloqués (20, 40, 60...)
 
         const TIMER_DURATION = 10;
+        const CHECKPOINT_INTERVAL = 20; // Checkpoint tous les 20 scores
 
         // Créer les sons du jeu avec Web Audio API
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -405,6 +511,48 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
+        function updateLivesDisplay() {
+            const livesElement = document.getElementById('lives');
+            if (lives > 0) {
+                livesElement.textContent = '❤️'.repeat(lives);
+            } else {
+                livesElement.textContent = '0';
+            }
+        }
+
+        function checkForCheckpoint() {
+            // Vérifier si on atteint un multiple de 20
+            if (score > 0 && score % CHECKPOINT_INTERVAL === 0) {
+                if (!checkpoints.includes(score)) {
+                    checkpoints.push(score);
+                    lives++; // Gagner une vie
+                    updateLivesDisplay();
+                    
+                    // Sauvegarder dans localStorage
+                    localStorage.setItem('mathChallengeCheckpoints', JSON.stringify(checkpoints));
+                    
+                    // Message visuel
+                    showBonusMessage(`🎉 Checkpoint ${score} ! +1 vie bonus !`);
+                }
+            }
+        }
+
+        function showBonusMessage(message) {
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedbackText');
+            
+            feedback.className = 'feedback show';
+            feedback.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            feedback.style.color = 'white';
+            feedbackText.textContent = message;
+            
+            setTimeout(() => {
+                feedback.className = 'feedback';
+                feedback.style.background = '';
+                feedback.style.color = '';
+            }, 2000);
+        }
+
         function startTimer() {
             timeLeft = TIMER_DURATION;
             updateTimerDisplay();
@@ -455,7 +603,6 @@
             if (isWaitingForNext) return;
             
             isWaitingForNext = true;
-            playFailSound();
             
             const feedback = document.getElementById('feedback');
             const feedbackText = document.getElementById('feedbackText');
@@ -463,13 +610,35 @@
             
             disableButtons();
             
-            feedback.className = 'feedback incorrect show';
-            feedbackText.textContent = '❌ Perdu! Temps écoulé!';
-            correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
-            
-            setTimeout(() => {
-                gameOver();
-            }, 2000);
+            // Vérifier si on a des vies
+            if (lives > 0) {
+                lives--;
+                updateLivesDisplay();
+                
+                playFailSound();
+                
+                feedback.className = 'feedback show';
+                feedback.style.background = '#fff3cd';
+                feedback.style.color = '#856404';
+                feedbackText.textContent = '⚠️ Temps écoulé ! Vous avez utilisé une vie';
+                correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
+                
+                setTimeout(() => {
+                    feedback.style.background = '';
+                    feedback.style.color = '';
+                    displayNewCalculation();
+                }, 2000);
+            } else {
+                playFailSound();
+                
+                feedback.className = 'feedback incorrect show';
+                feedbackText.textContent = '❌ Perdu! Temps écoulé!';
+                correctAnswer.textContent = `Le résultat exact était: ${currentCalculation.realResult}`;
+                
+                setTimeout(() => {
+                    gameOver();
+                }, 2000);
+            }
         }
 
         function getDifficultyParams(level) {
@@ -489,15 +658,64 @@
         function generateCalculation() {
             const params = getDifficultyParams(level);
             const ops = params.ops;
-            const operation = ops[Math.floor(Math.random() * ops.length)];
             
-            let num1, num2, realResult, equation;
+            let num1, num2, num3, realResult, equation;
 
+            // À partir du niveau 7, possibilité d'avoir 3 nombres
+            const useThreeNumbers = level >= 7 && Math.random() > 0.5;
+            
             if (params.useSqrt && Math.random() > 0.7) {
                 num1 = getRandomInt(params.min, params.max);
                 realResult = Math.sqrt(num1);
                 equation = `√${num1}`;
+            } else if (useThreeNumbers && ops.length > 1) {
+                // Calcul avec 3 nombres
+                num1 = getRandomInt(params.min, params.max);
+                num2 = getRandomInt(params.min, params.max);
+                num3 = getRandomInt(params.min, params.max);
+                
+                const operation1 = ops[Math.floor(Math.random() * ops.length)];
+                const operation2 = ops[Math.floor(Math.random() * ops.length)];
+                
+                // Calculer le résultat étape par étape
+                let intermediate;
+                switch(operation1) {
+                    case '+':
+                        intermediate = num1 + num2;
+                        break;
+                    case '-':
+                        intermediate = num1 - num2;
+                        break;
+                    case '×':
+                        intermediate = num1 * num2;
+                        break;
+                    case '÷':
+                        num2 = getRandomInt(2, 10);
+                        num1 = num2 * getRandomInt(Math.max(1, params.min/10), params.max/10);
+                        intermediate = num1 / num2;
+                        break;
+                }
+                
+                switch(operation2) {
+                    case '+':
+                        realResult = intermediate + num3;
+                        break;
+                    case '-':
+                        realResult = intermediate - num3;
+                        break;
+                    case '×':
+                        realResult = intermediate * num3;
+                        break;
+                    case '÷':
+                        num3 = getRandomInt(2, 10);
+                        realResult = intermediate / num3;
+                        break;
+                }
+                
+                equation = `${num1} ${operation1} ${num2} ${operation2} ${num3}`;
             } else {
+                // Calcul avec 2 nombres (comme avant)
+                const operation = ops[Math.floor(Math.random() * ops.length)];
                 num1 = getRandomInt(params.min, params.max);
                 num2 = getRandomInt(params.min, params.max);
 
@@ -614,18 +832,39 @@
                 correctAnswer.textContent = `Résultat exact: ${real}`;
                 
                 setTimeout(() => {
+                    checkForCheckpoint(); // Vérifier si on atteint un checkpoint
                     displayNewCalculation();
                 }, 1500);
             } else {
-                playFailSound();
-                
-                feedback.className = 'feedback incorrect show';
-                feedbackText.textContent = '❌ Perdu!';
-                correctAnswer.textContent = `Le résultat exact était: ${real}`;
-                
-                setTimeout(() => {
-                    gameOver();
-                }, 2000);
+                // Vérifier si on a des vies
+                if (lives > 0) {
+                    lives--;
+                    updateLivesDisplay();
+                    
+                    playFailSound();
+                    
+                    feedback.className = 'feedback show';
+                    feedback.style.background = '#fff3cd';
+                    feedback.style.color = '#856404';
+                    feedbackText.textContent = '⚠️ Erreur ! Vous avez utilisé une vie';
+                    correctAnswer.textContent = `Le résultat exact était: ${real}`;
+                    
+                    setTimeout(() => {
+                        feedback.style.background = '';
+                        feedback.style.color = '';
+                        displayNewCalculation();
+                    }, 2000);
+                } else {
+                    playFailSound();
+                    
+                    feedback.className = 'feedback incorrect show';
+                    feedbackText.textContent = '❌ Perdu!';
+                    correctAnswer.textContent = `Le résultat exact était: ${real}`;
+                    
+                    setTimeout(() => {
+                        gameOver();
+                    }, 2000);
+                }
             }
         }
 
@@ -635,37 +874,75 @@
             document.getElementById('gameActive').classList.add('hidden');
             document.getElementById('gameOver').classList.add('show');
             document.getElementById('finalScore').textContent = score;
+            
+            // Charger les checkpoints sauvegardés
+            const savedCheckpoints = JSON.parse(localStorage.getItem('mathChallengeCheckpoints') || '[]');
+            const checkpointButtons = document.getElementById('checkpointButtons');
+            
+            // Supprimer les anciens boutons checkpoint
+            const oldCheckpointBtns = checkpointButtons.querySelectorAll('.checkpoint-btn');
+            oldCheckpointBtns.forEach(btn => btn.remove());
+            
+            // Ajouter un bouton pour chaque checkpoint débloqué
+            savedCheckpoints.sort((a, b) => b - a); // Trier par ordre décroissant
+            savedCheckpoints.forEach(checkpoint => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-restart checkpoint-btn';
+                btn.style.background = '#51cf66';
+                btn.textContent = `🎯 Recommencer au niveau ${checkpoint}`;
+                btn.onclick = () => restartFromCheckpoint(checkpoint);
+                checkpointButtons.appendChild(btn);
+            });
         }
 
         function restartGame() {
             score = 0;
             level = 1;
+            lives = 0;
             isWaitingForNext = false;
             document.getElementById('score').textContent = score;
+            updateLivesDisplay();
             document.getElementById('gameActive').classList.remove('hidden');
             document.getElementById('gameOver').classList.remove('show');
             startBackgroundMusic();
             displayNewCalculation();
         }
 
+        function restartFromCheckpoint(checkpointScore) {
+            score = checkpointScore;
+            level = Math.floor(checkpointScore / 3) + 1;
+            
+            // Calculer le nombre de vies en fonction des checkpoints atteints
+            lives = Math.floor(checkpointScore / CHECKPOINT_INTERVAL);
+            
+            isWaitingForNext = false;
+            document.getElementById('score').textContent = score;
+            updateLivesDisplay();
+            document.getElementById('gameActive').classList.remove('hidden');
+            document.getElementById('gameOver').classList.remove('show');
+            startBackgroundMusic();
+            displayNewCalculation();
+        }
+
+        function startGame() {
+            // Charger les checkpoints sauvegardés
+            const savedCheckpoints = JSON.parse(localStorage.getItem('mathChallengeCheckpoints') || '[]');
+            checkpoints = savedCheckpoints;
+            
+            document.getElementById('welcomeScreen').classList.remove('show');
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('gameHeader').classList.remove('hidden');
+            document.getElementById('gameActive').classList.remove('hidden');
+            updateLivesDisplay();
+            startBackgroundMusic();
+            displayNewCalculation();
+        }
+
         // Event listeners
+        document.getElementById('btnStart').addEventListener('click', startGame);
         document.getElementById('btnLower').addEventListener('click', () => checkAnswer('lower'));
         document.getElementById('btnHigher').addEventListener('click', () => checkAnswer('higher'));
         document.getElementById('btnRestart').addEventListener('click', restartGame);
-
-        // Initialiser le jeu et démarrer la musique au premier clic
-        let gameStarted = false;
-        function initGame() {
-            if (!gameStarted) {
-                gameStarted = true;
-                startBackgroundMusic();
-            }
-        }
-        
-        document.getElementById('btnLower').addEventListener('click', initGame, { once: true });
-        document.getElementById('btnHigher').addEventListener('click', initGame, { once: true });
-        
-        displayNewCalculation();
     </script>
 </body>
 </html>
