@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Math Challenge</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Testez votre rapidité en calcul mental !">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Math Challenge">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <style>
         * {
             margin: 0;
@@ -669,7 +684,7 @@
                 realResult = Math.sqrt(num1);
                 equation = `√${num1}`;
             } else if (useThreeNumbers && ops.length > 1) {
-                // Calcul avec 3 nombres
+                // Calcul avec 3 nombres - RESPECT DE LA PRIORITÉ DES OPÉRATEURS
                 num1 = getRandomInt(params.min, params.max);
                 num2 = getRandomInt(params.min, params.max);
                 num3 = getRandomInt(params.min, params.max);
@@ -677,42 +692,93 @@
                 const operation1 = ops[Math.floor(Math.random() * ops.length)];
                 const operation2 = ops[Math.floor(Math.random() * ops.length)];
                 
-                // Calculer le résultat étape par étape
-                let intermediate;
-                switch(operation1) {
-                    case '+':
-                        intermediate = num1 + num2;
-                        break;
-                    case '-':
-                        intermediate = num1 - num2;
-                        break;
-                    case '×':
-                        intermediate = num1 * num2;
-                        break;
-                    case '÷':
-                        num2 = getRandomInt(2, 10);
-                        num1 = num2 * getRandomInt(Math.max(1, params.min/10), params.max/10);
-                        intermediate = num1 / num2;
-                        break;
+                // Ajuster les divisions pour éviter les nombres trop complexes
+                if (operation1 === '÷') {
+                    num2 = getRandomInt(2, 10);
+                    num1 = num2 * getRandomInt(Math.max(1, params.min/10), params.max/10);
+                }
+                if (operation2 === '÷') {
+                    num3 = getRandomInt(2, 10);
                 }
                 
-                switch(operation2) {
-                    case '+':
-                        realResult = intermediate + num3;
-                        break;
-                    case '-':
-                        realResult = intermediate - num3;
-                        break;
-                    case '×':
-                        realResult = intermediate * num3;
-                        break;
-                    case '÷':
-                        num3 = getRandomInt(2, 10);
-                        realResult = intermediate / num3;
-                        break;
-                }
-                
+                // Créer l'équation
                 equation = `${num1} ${operation1} ${num2} ${operation2} ${num3}`;
+                
+                // Calculer avec la bonne priorité des opérateurs
+                const isPriority1 = (operation1 === '×' || operation1 === '÷');
+                const isPriority2 = (operation2 === '×' || operation2 === '÷');
+                
+                if (isPriority1 && !isPriority2) {
+                    // Op1 prioritaire : calculer d'abord num1 op1 num2, puis résultat op2 num3
+                    let intermediate;
+                    switch(operation1) {
+                        case '×':
+                            intermediate = num1 * num2;
+                            break;
+                        case '÷':
+                            intermediate = num1 / num2;
+                            break;
+                    }
+                    switch(operation2) {
+                        case '+':
+                            realResult = intermediate + num3;
+                            break;
+                        case '-':
+                            realResult = intermediate - num3;
+                            break;
+                    }
+                } else if (!isPriority1 && isPriority2) {
+                    // Op2 prioritaire : calculer d'abord num2 op2 num3, puis num1 op1 résultat
+                    let intermediate;
+                    switch(operation2) {
+                        case '×':
+                            intermediate = num2 * num3;
+                            break;
+                        case '÷':
+                            intermediate = num2 / num3;
+                            break;
+                    }
+                    switch(operation1) {
+                        case '+':
+                            realResult = num1 + intermediate;
+                            break;
+                        case '-':
+                            realResult = num1 - intermediate;
+                            break;
+                    }
+                } else {
+                    // Même priorité : calculer de gauche à droite
+                    let intermediate;
+                    switch(operation1) {
+                        case '+':
+                            intermediate = num1 + num2;
+                            break;
+                        case '-':
+                            intermediate = num1 - num2;
+                            break;
+                        case '×':
+                            intermediate = num1 * num2;
+                            break;
+                        case '÷':
+                            intermediate = num1 / num2;
+                            break;
+                    }
+                    
+                    switch(operation2) {
+                        case '+':
+                            realResult = intermediate + num3;
+                            break;
+                        case '-':
+                            realResult = intermediate - num3;
+                            break;
+                        case '×':
+                            realResult = intermediate * num3;
+                            break;
+                        case '÷':
+                            realResult = intermediate / num3;
+                            break;
+                    }
+                }
             } else {
                 // Calcul avec 2 nombres (comme avant)
                 const operation = ops[Math.floor(Math.random() * ops.length)];
@@ -943,6 +1009,15 @@
         document.getElementById('btnLower').addEventListener('click', () => checkAnswer('lower'));
         document.getElementById('btnHigher').addEventListener('click', () => checkAnswer('higher'));
         document.getElementById('btnRestart').addEventListener('click', restartGame);
+        
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker enregistré'))
+                    .catch(err => console.log('Erreur Service Worker:', err));
+            });
+        }
     </script>
 </body>
 </html>
